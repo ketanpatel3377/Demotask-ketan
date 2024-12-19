@@ -1,17 +1,62 @@
-/**
- * @format
- */
-
-import 'react-native';
 import React from 'react';
-import App from '../App';
+import {render, fireEvent, act} from '@testing-library/react-native';
+import SimpleForm from '../src/screen/Form/index';
 
-// Note: import explicitly to use the types shipped with jest.
-import {it} from '@jest/globals';
+describe('Basic Form Tests', () => {
+  it('renders the input fields and no button initially', () => {
+    const {queryByTestId} = render(<SimpleForm />);
+    const button = queryByTestId('submitButton');
+    expect(button).toBeTruthy(); // Button exists
+    expect(button.props.accessibilityState.disabled).toBe(true); // Check disabled state
+  });
 
-// Note: test renderer must be required after react-native.
-import renderer from 'react-test-renderer';
+  it('shows the button when both inputs have values', () => {
+    const {getByTestId} = render(<SimpleForm />);
+    const input1 = getByTestId('input1');
+    const input2 = getByTestId('input2');
+    const button = getByTestId('submitButton');
 
-it('renders correctly', () => {
-  renderer.create(<App />);
+    act(() => {
+      fireEvent.changeText(input1, 'Test1');
+      fireEvent.changeText(input2, 'Test2');
+    });
+
+    expect(button.props.accessibilityState.disabled).toBe(false); // Enabled button
+  });
+
+  it('hides the button when one of the inputs is empty', () => {
+    const {getByTestId, queryByTestId} = render(<SimpleForm />);
+    const input1 = getByTestId('input1');
+    const input2 = getByTestId('input2');
+    const button = queryByTestId('submitButton');
+
+    act(() => {
+      fireEvent.changeText(input1, 'Test1');
+      fireEvent.changeText(input2, '');
+    });
+
+    expect(button.props.accessibilityState.disabled).toBe(true); // Disabled button
+  });
+
+  it('outputs JSON when the button is pressed', () => {
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    const {getByTestId} = render(<SimpleForm />);
+    const input1 = getByTestId('input1');
+    const input2 = getByTestId('input2');
+    const button = getByTestId('submitButton');
+
+    act(() => {
+      fireEvent.changeText(input1, 'Test1');
+      fireEvent.changeText(input2, 'Test2');
+      fireEvent.press(button);
+    });
+
+    // Expect a string
+    expect(console.log).toHaveBeenCalledWith(
+      '{"input1":"Test1","input2":"Test2"}',
+    );
+
+    jest.restoreAllMocks();
+  });
 });
